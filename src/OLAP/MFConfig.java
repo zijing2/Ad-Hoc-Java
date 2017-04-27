@@ -242,7 +242,7 @@ public class MFConfig {
 				}
 			}
 			clause = String.valueOf(arr);
-			clause = clause.replaceAll("=", "==").replaceAll("and", "&&").replaceAll("or", "||").replaceAll("<>", "!=");
+			clause = clause.replaceAll("=", "==").replaceAll("and", "&&").replaceAll("or", "||").replaceAll("<>", "!=").replaceAll("'", "\"").replaceAll("\\(", "").replaceAll("\\)", "");
 			String[] carr = clause.split(" ");
 			for(int j=0;j<carr.length;j++){
 				if(carr[j].equals("==")||carr[j].equals(">=")||carr[j].equals("<=")||carr[j].equals(">")||carr[j].equals("<")||carr[j].equals("<>")){
@@ -257,6 +257,21 @@ public class MFConfig {
 			MFConfig.O[i] = clause;
 		}
 		
+	}
+	
+	public static void havingParser(){
+		MFConfig.G = MFConfig.G.replaceAll("=", "==").replaceAll("and", "&&").replaceAll("or", "||").replaceAll("<>", "!=").replaceAll("'", "\"").replaceAll("\\(", "").replaceAll("\\)", "");
+		String[] G_arr = G.split(" ");
+		for(int i=0;i<G_arr.length;i++){
+			if(G_arr[i].indexOf("_")!=-1){
+				String[] temp = G_arr[i].split("_");
+				String t = temp[0];
+				temp[0] = temp[2];
+				temp[2] = t;
+				G_arr[i] = concatenate(temp, "_");
+			}
+		}
+		MFConfig.G = concatenate(G_arr," ");
 	}
 	
 	public static String[] getAggreateFunctionByRound(int round){
