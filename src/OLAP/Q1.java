@@ -15,8 +15,14 @@ public class Q1 {
             int i = Integer.parseInt((""+ topologicalSeq.charAt(r)));
             try {
                 ResultSet rs = Data.getSalesRow();
+                outer:
                 while (rs.next()) {
                     if (i == 0) {
+                        for (int j = 0; (j<mfs_arraylist.size()); j ++) {
+                            if (mfs_arraylist.get(j).cust.equals(rs.getString("cust"))&&(mfs_arraylist.get(j).month == Integer.parseInt(rs.getString("month")))) {
+                                continue outer;
+                            }
+                        }
                         mfs = new MFStructure();
                         mfs.cust = rs.getString("cust");
                         mfs.month = Integer.valueOf(rs.getString("month"));

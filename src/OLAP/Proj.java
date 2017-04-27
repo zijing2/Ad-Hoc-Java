@@ -16,13 +16,18 @@ import com.sun.codemodel.JExpression;
 import com.sun.codemodel.JFieldRef;
 import com.sun.codemodel.JFieldVar;
 import com.sun.codemodel.JForLoop;
+import com.sun.codemodel.JFormatter;
 import com.sun.codemodel.JInvocation;
+import com.sun.codemodel.JLabel;
 import com.sun.codemodel.JMethod;
 import com.sun.codemodel.JMod;
+import com.sun.codemodel.JStatement;
 import com.sun.codemodel.JTryBlock;
 import com.sun.codemodel.JType;
 import com.sun.codemodel.JVar;
 import com.sun.codemodel.JWhileLoop;
+import com.sun.xml.internal.ws.client.sei.ResponseBuilder.NullSetter;
+
 
 public class Proj {
 
@@ -100,8 +105,6 @@ public class Proj {
 		File destDir2 = new File("src/");
 		JDefinedClass dc = cm._class("OLAP.Q1");
 		
-		
-		
 		//generate MFStructure ArrayList
 		JDefinedClass MFSClass = cm._class("MFStructure");
 		JClass arrayListClass = cm.ref(ArrayList.class);
@@ -135,14 +138,49 @@ public class Proj {
 		JCatchBlock cblock = tblock._catch(Exception);
 		JBlock tbody = tblock.body();
 		
+		
+		//tbody._continue(l);
+		
 		JVar rs = tbody.decl(ResultSetType, "rs", mainBody.invoke(JExpr.ref("Data"), "getSalesRow"));
-		JWhileLoop whileLoop = tbody._while(JExpr.ref("rs").invoke("next")); 
+		JLabel outer = tbody.label("outer");
+		JWhileLoop whileLoop = tbody._while(JExpr.ref("rs").invoke("next"));
 		JBlock wbody = whileLoop.body();
 		//wbody.add(cm.ref(System.class).staticRef("out").invoke("println").arg(JExpr.ref("rs").invoke("getString").arg("quant")));
 		
 		JConditional scan_round_if = wbody._if(JExpr.ref("i").eq(JExpr.lit(0)));
 		JBlock scan_round_if_then = scan_round_if._then();
 		JBlock scan_round_if_else = scan_round_if._else();
+		JForLoop mfs_arrary_forloop= scan_round_if_then._for();
+		mfs_arrary_forloop.init(cm.INT,"j", JExpr.lit(0)); 
+		mfs_arrary_forloop.test(JExpr.ref("j").lt(JExpr.ref("mfs_arraylist").invoke("size")));
+		mfs_arrary_forloop.update(JExpr.ref("j").incr());
+		JExpression groupby_if_express = null;
+		for(int y=0;y<MFConfig.V.length;y++){
+			if(TableSchema.isAttributeInt(MFConfig.V[y])){
+				if(groupby_if_express==null){
+					groupby_if_express = JExpr.ref("mfs_arraylist")
+					.invoke("get").arg(JExpr.ref("j")).ref(MFConfig.V[y])
+					.eq(JExpr.ref("Integer").invoke("parseInt").arg(JExpr.ref("rs").invoke("getString").arg(MFConfig.V[y])));
+				}else{
+					groupby_if_express = groupby_if_express.cand(JExpr.ref("mfs_arraylist")
+							.invoke("get").arg(JExpr.ref("j")).ref(MFConfig.V[y])
+							.eq(JExpr.ref("Integer").invoke("parseInt").arg(JExpr.ref("rs").invoke("getString").arg(MFConfig.V[y]))));
+				}
+			}else{
+				if(groupby_if_express==null){
+					groupby_if_express = JExpr.ref("mfs_arraylist")
+					.invoke("get").arg(JExpr.ref("j")).ref(MFConfig.V[y])
+					.invoke("equals").arg(JExpr.ref("rs").invoke("getString").arg(MFConfig.V[y]));
+				}else{
+					 groupby_if_express = groupby_if_express.cand(JExpr.ref("mfs_arraylist")
+								.invoke("get").arg(JExpr.ref("j")).ref(MFConfig.V[y])
+								.invoke("equals").arg(JExpr.ref("rs").invoke("getString").arg(MFConfig.V[y])));
+				}
+			}
+		}
+		
+		JConditional groupby_if = mfs_arrary_forloop.body()._if(groupby_if_express);
+		groupby_if._then()._continue(outer);
 		scan_round_if_then.assign(mfs, JExpr._new(mfs_type));
 		for(int i=0;i<MFConfig.V.length;i++){
 			if(TableSchema.isAttributeInt(MFConfig.V[i])){
