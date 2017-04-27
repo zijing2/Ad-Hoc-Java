@@ -256,22 +256,23 @@ public class MFConfig {
 			clause = concatenate(carr,"");
 			MFConfig.O[i] = clause;
 		}
-		
 	}
 	
 	public static void havingParser(){
-		MFConfig.G = MFConfig.G.replaceAll("=", "==").replaceAll("and", "&&").replaceAll("or", "||").replaceAll("<>", "!=").replaceAll("'", "\"").replaceAll("\\(", "").replaceAll("\\)", "");
-		String[] G_arr = G.split(" ");
-		for(int i=0;i<G_arr.length;i++){
-			if(G_arr[i].indexOf("_")!=-1){
-				String[] temp = G_arr[i].split("_");
-				String t = temp[0];
-				temp[0] = temp[2];
-				temp[2] = t;
-				G_arr[i] = concatenate(temp, "_");
+		if(MFConfig.G!=null){
+			MFConfig.G = MFConfig.G.replaceAll("=", "==").replaceAll("and", "&&").replaceAll("or", "||").replaceAll("<>", "!=").replaceAll("'", "\"").replaceAll("\\(", "").replaceAll("\\)", "");
+			String[] G_arr = G.split(" ");
+			for(int i=0;i<G_arr.length;i++){
+				if(G_arr[i].indexOf("_")!=-1){
+					String[] temp = G_arr[i].split("_");
+					String t = temp[0];
+					temp[0] = temp[2];
+					temp[2] = t;
+					G_arr[i] = concatenate(temp, "_");
+				}
 			}
+			MFConfig.G = concatenate(G_arr," ");
 		}
-		MFConfig.G = concatenate(G_arr," ");
 	}
 	
 	public static String[] getAggreateFunctionByRound(int round){

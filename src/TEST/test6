@@ -1,0 +1,6 @@
+2
+prod,quant
+1_avg_quant,2_avg_quant,1_count_prod,2_count_prod
+prod,quant,1_avg_quant,2_avg_quant
+1.prod = prod, 2.prod = prod and 2.quant < quant
+2_count_prod = 1_count_prod / 2

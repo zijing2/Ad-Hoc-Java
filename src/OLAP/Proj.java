@@ -32,21 +32,23 @@ public class Proj {
 
 	public static void main(String[] args) throws Exception {
 		init();
+		//IO.initByPrompt();
+		IO.initByReadFile("src/TEST/test6");
 		
-		MFConfig.initConfig(
-				//S
-				"prod,month,1_avg_quant,2_count_quant,3_avg_quant",
-				//N
-				"3",
-				//V
-				"prod,month",
-				//F
-				"1_avg_quant,2_count_quant,3_avg_quant", 
-				//O
-				"1.prod = prod and 1.month = month-1, 2.prod = prod and 2.month = month and 2.quant > avg(1.quant) and 2.quant < avg(3.quant), 3.prod = prod and 3.month = month+1",
-				//G
-				"3_avg_quant > 1_avg_quant");
-	
+//		MFConfig.initConfig(
+//				//S
+//				"prod,month,1_avg_quant,2_count_quant,3_avg_quant",
+//				//N
+//				"3",
+//				//V
+//				"prod,month",
+//				//F
+//				"1_avg_quant,2_count_quant,3_avg_quant", 
+//				//O
+//				"1.prod = prod and 1.month = month-1, 2.prod = prod and 2.month = month and 2.quant > avg(1.quant) and 2.quant < avg(3.quant), 3.prod = prod and 3.month = month+1",
+//				//G
+//				"3_avg_quant > 1_avg_quant");
+
 		//topologicalSort
 		Graph.initG();
 		Graph.topoligicalSort();
@@ -100,9 +102,9 @@ public class Proj {
 		JDefinedClass dc = cm._class("OLAP.Q1");
 		
 		//generate MFStructure ArrayList
-		JDefinedClass MFSClass = cm._class("MFStructure");
+		//JDefinedClass MFSClass = cm._class("MFStructure");
 		JClass arrayListClass = cm.ref(ArrayList.class);
-		JClass arrayListOfMFSClass = arrayListClass.narrow(MFSClass);
+		JClass arrayListOfMFSClass = arrayListClass.narrow(dc_mfs);
 		JVar mfs_arrayList = dc.field(JMod.PUBLIC + JMod.STATIC, arrayListOfMFSClass, "mfs_arraylist",JExpr._new(arrayListOfMFSClass)); 
 		
 		//######## generate main method ##########
@@ -139,6 +141,7 @@ public class Proj {
 		//wbody.add(cm.ref(System.class).staticRef("out").invoke("println").arg(JExpr.ref("rs").invoke("getString").arg("quant")));
 		
 		JConditional scan_round_if = wbody._if(JExpr.ref("i").eq(JExpr.lit(0)));
+		String[] aggr_func_0 = MFConfig.getAggreateFunctionByRound(0);
 		JBlock scan_round_if_then = scan_round_if._then();
 		JBlock scan_round_if_else = scan_round_if._else();
 		JForLoop mfs_arrary_forloop= scan_round_if_then._for();
@@ -169,15 +172,81 @@ public class Proj {
 				}
 			}
 		}
-		
 		JConditional groupby_if = mfs_arrary_forloop.body()._if(groupby_if_express);
+		for(int k=0;k<aggr_func_0.length;k++){
+			if(aggr_func_0[k].indexOf("sum")!=-1){
+				groupby_if._then().assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]),JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]).plus(JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]))));
+			}
+			if(aggr_func_0[k].indexOf("count")!=-1){
+				groupby_if._then().assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]), JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]).plus(JExpr.lit(1)));
+			}
+			if(aggr_func_0[k].indexOf("avg")!=-1){
+				String[] temp = aggr_func_0[k].split("_");
+				temp[1] = "sum";
+				String sum = MFConfig.concatenate(temp, "_");
+				temp[1] = "count";
+				String count = MFConfig.concatenate(temp, "_");
+				groupby_if._then().assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]), JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(sum).div(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(count)));
+			}
+			
+			if(aggr_func_0[k].indexOf("max")!=-1 || aggr_func_0[k].indexOf("min")!=-1){
+				JConditional aggreate_function_null_if = groupby_if._then()._if(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]).eq(JExpr.ref("null")));
+				JBlock aggreate_function_null_if_then = aggreate_function_null_if._then();
+				JBlock aggreate_function_null_if_else = aggreate_function_null_if._else();
+				
+				if(aggr_func_0[k].indexOf("max")!=-1){
+					aggreate_function_null_if_then.assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+					JConditional max_if = aggreate_function_null_if_else._if(JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]).invoke("compareTo").arg(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k])).gt(JExpr.lit(0)));
+					max_if._then().assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+				}
+				if(aggr_func_0[k].indexOf("min")!=-1){
+					aggreate_function_null_if_then.assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+					JConditional min_if = aggreate_function_null_if_else._if(JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]).invoke("compareTo").arg(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k])).lt(JExpr.lit(0)));
+					min_if._then().assign(JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("j")).ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+				}
+			}
+		}
 		groupby_if._then()._continue(outer);
+		
 		scan_round_if_then.assign(mfs, JExpr._new(mfs_type));
 		for(int i=0;i<MFConfig.V.length;i++){
 			if(TableSchema.isAttributeInt(MFConfig.V[i])){
 				scan_round_if_then.assign(JExpr.ref("mfs").ref(MFConfig.V[i]), JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("rs").invoke("getString").arg(MFConfig.V[i])));
 			}else{
 				scan_round_if_then.assign(JExpr.ref("mfs").ref(MFConfig.V[i]), JExpr.ref("rs").invoke("getString").arg(MFConfig.V[i]));
+			}
+		}
+		for(int k=0;k<aggr_func_0.length;k++){
+			if(aggr_func_0[k].indexOf("sum")!=-1){
+				scan_round_if_then.assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0])));
+			}
+			if(aggr_func_0[k].indexOf("count")!=-1){
+				scan_round_if_then.assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.lit(1));
+			}
+			if(aggr_func_0[k].indexOf("avg")!=-1){
+				String[] temp = aggr_func_0[k].split("_");
+				temp[1] = "sum";
+				String sum = MFConfig.concatenate(temp, "_");
+				temp[1] = "count";
+				String count = MFConfig.concatenate(temp, "_");
+				scan_round_if_then.assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.ref("mfs").ref(sum).div(JExpr.ref("mfs").ref(count)));
+			}
+			
+			if(aggr_func_0[k].indexOf("max")!=-1 || aggr_func_0[k].indexOf("min")!=-1){
+				JConditional aggreate_function_null_if = scan_round_if_then._if(JExpr.ref("mfs").ref(aggr_func_0[k]).eq(JExpr.ref("null")));
+				JBlock aggreate_function_null_if_then = aggreate_function_null_if._then();
+				JBlock aggreate_function_null_if_else = aggreate_function_null_if._else();
+				
+				if(aggr_func_0[k].indexOf("max")!=-1){
+					aggreate_function_null_if_then.assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+					JConditional max_if = aggreate_function_null_if_else._if(JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]).invoke("compareTo").arg(JExpr.ref("mfs").ref(aggr_func_0[k])).gt(JExpr.lit(0)));
+					max_if._then().assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+				}
+				if(aggr_func_0[k].indexOf("min")!=-1){
+					aggreate_function_null_if_then.assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+					JConditional min_if = aggreate_function_null_if_else._if(JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]).invoke("compareTo").arg(JExpr.ref("mfs").ref(aggr_func_0[k])).lt(JExpr.lit(0)));
+					min_if._then().assign(JExpr.ref("mfs").ref(aggr_func_0[k]), JExpr.ref("rs").invoke("getString").arg(aggr_func_0[k].split("_")[0]));
+				}
 			}
 		}
 		scan_round_if_then.add(JExpr.ref("mfs_arraylist").invoke("add").arg(JExpr.ref("mfs")));
@@ -214,7 +283,11 @@ public class Proj {
 			if(TableSchema.isAttributeInt(MFConfig.F[i].split("_")[0])){
 				arraylistf_body.decl(cm.INT, v, JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
 			}else{
-				arraylistf_body.decl(cm.parseType("String"), v, JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+				if(MFConfig.F[i].split("_")[1].equals("sum")||MFConfig.F[i].split("_")[1].equals("count")||MFConfig.F[i].split("_")[1].equals("avg")){
+					arraylistf_body.decl(cm.INT, v, JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+				}else{
+					arraylistf_body.decl(cm.parseType("String"), v, JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+				}
 			}
 		}
 		
@@ -261,33 +334,40 @@ public class Proj {
 			}
 		}
 		
-		JVar arraylist_len = mainBody.decl(cm.INT, "arraylist_len", JExpr.ref("mfs_arraylist").invoke("size"));
 		//having clause (remove element in ArrayList which not satisfy having expression)
-		JForLoop havingArrayListLoop = mainBody._for();
-		havingArrayListLoop.init(cm.INT,"z", JExpr.lit(0)); 
-		havingArrayListLoop.test(JExpr.ref("z").lt(arraylist_len));
-		havingArrayListLoop.update(JExpr.ref("z").incr());
-		JBlock havingf_body = havingArrayListLoop.body();
-		
-		havingf_body.assign(JExpr.ref("mfs"), JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("z")));
-		for(int i=0;i<MFConfig.V.length;i++){
-			if(TableSchema.isAttributeInt(MFConfig.V[i])){
-				havingf_body.decl(cm.INT, MFConfig.V[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.V[i])));
-			}else{
-				havingf_body.decl(cm.parseType("String"), MFConfig.V[i], JExpr.ref("mfs").ref(MFConfig.V[i]));
+		if(MFConfig.G!=null){
+			JVar arraylist_len = mainBody.decl(cm.INT, "arraylist_len", JExpr.ref("mfs_arraylist").invoke("size"));
+			JForLoop havingArrayListLoop = mainBody._for();
+			havingArrayListLoop.init(cm.INT,"z", JExpr.lit(0)); 
+			havingArrayListLoop.test(JExpr.ref("z").lt(arraylist_len));
+			havingArrayListLoop.update(JExpr.ref("z").incr());
+			JBlock havingf_body = havingArrayListLoop.body();
+			
+			havingf_body.assign(JExpr.ref("mfs"), JExpr.ref("mfs_arraylist").invoke("get").arg(JExpr.ref("z")));
+			for(int i=0;i<MFConfig.V.length;i++){
+				if(TableSchema.isAttributeInt(MFConfig.V[i])){
+					havingf_body.decl(cm.INT, MFConfig.V[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.V[i])));
+				}else{
+					havingf_body.decl(cm.parseType("String"), MFConfig.V[i], JExpr.ref("mfs").ref(MFConfig.V[i]));
+				}
 			}
-		}
-		for(int i=0;i<MFConfig.F.length;i++){
-			if(TableSchema.isAttributeInt(MFConfig.F[i].split("_")[0])){
-				havingf_body.decl(cm.INT, MFConfig.F[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
-			}else{
-				havingf_body.decl(cm.parseType("String"), MFConfig.F[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+			for(int i=0;i<MFConfig.F.length;i++){
+				if(TableSchema.isAttributeInt(MFConfig.F[i].split("_")[0])){
+					havingf_body.decl(cm.INT, MFConfig.F[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+				}else{
+					if(MFConfig.F[i].split("_")[1].equals("sum")||MFConfig.F[i].split("_")[1].equals("count")||MFConfig.F[i].split("_")[1].equals("avg")){
+						havingf_body.decl(cm.INT, MFConfig.F[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+					}else{
+						havingf_body.decl(cm.parseType("String"), MFConfig.F[i], JExpr.ref("Integer").invoke("valueOf").arg(JExpr.ref("mfs").ref(MFConfig.F[i])));
+					}
+						
+				}
 			}
+			JConditional having_if = havingf_body._if(JExpr.direct(MFConfig.G));
+			having_if._else().add(JExpr.ref("mfs_arraylist").invoke("remove").arg(JExpr.ref("z")));
+			having_if._else().assign(arraylist_len, arraylist_len.minus(JExpr.lit(1)));
+			having_if._else().assign(JExpr.ref("z"), JExpr.ref("z").minus(JExpr.lit(1)));
 		}
-		JConditional having_if = havingf_body._if(JExpr.direct(MFConfig.G));
-		having_if._else().add(JExpr.ref("mfs_arraylist").invoke("remove").arg(JExpr.ref("z")));
-		having_if._else().assign(arraylist_len, arraylist_len.minus(JExpr.lit(1)));
-		having_if._else().assign(JExpr.ref("z"), JExpr.ref("z").minus(JExpr.lit(1)));
 		
 		//render mfs_arraylist
 		String table_header = "";

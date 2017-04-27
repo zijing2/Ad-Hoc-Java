@@ -1,0 +1,5 @@
+2
+prod,month
+1_sum_quant,2_sum_quant
+prod,month,1_sum_quant,2_sum_quant
+1.prod = prod and 1.month = month, 2.prod = prod
