@@ -37,7 +37,8 @@ each group.
    variable.
 2. If you are annoying compiling and are interested in using interpretive language to solve the
    problem, it's welcome to download my javascript engine version of ESQL in 
-   https://github.com/zijing2/Ad-Hoc. But as Professor. Kim say, this is not what database do.
+   https://github.com/zijing2/Ad-Hoc( using Zijing_branch as trunk, trunk is broken). 
+   But as Professor. Kim say, this is not what database do.
    Database always produce a plan, meaning a .java program, first, and then evaluate.
 
 
