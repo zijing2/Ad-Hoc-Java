@@ -245,7 +245,7 @@ public class MFConfig {
 			clause = clause.replaceAll("=", "==").replaceAll("and", "&&").replaceAll("or", "||").replaceAll("<>", "!=").replaceAll("'", "\"").replaceAll("\\(", "").replaceAll("\\)", "");
 			String[] carr = clause.split(" ");
 			for(int j=0;j<carr.length;j++){
-				if(carr[j].equals("==")||carr[j].equals(">=")||carr[j].equals("<=")||carr[j].equals(">")||carr[j].equals("<")||carr[j].equals("<>")){
+				if(carr[j].equals("==")||carr[j].equals(">=")||carr[j].equals("<=")||carr[j].equals(">")||carr[j].equals("<")||carr[j].equals("!=")){
 					//System.out.println(carr[j-1].substring(2,carr[j-1].length()));
 					if(!TableSchema.isAttributeInt(carr[j-1].substring(2,carr[j-1].length()))){
 						carr[j+1] = carr[j+1] + ")" + carr[j] + "0 ";
