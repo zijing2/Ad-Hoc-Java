@@ -1,0 +1,5 @@
+3
+prod,month
+1_avg_quant,2_count_quant,3_avg_quant
+prod,month,1_avg_quant,2_count_quant,3_avg_quant
+1.prod = prod and 1.month = month-1,2.prod = prod and 2.month = month and 2.quant > avg(1.quant) and 2.quant < avg(3.quant), 3.prod = prod and 3.month = month+1

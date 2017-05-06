@@ -2,4 +2,4 @@
 cust,month
 1_sum_quant, 1_avg_quant, 2_sum_quant, 2_avg_quant, 0_avg_quant
 cust,month,1_avg_quant,0_avg_quant,2_avg_quant 
-1.cust = cust and 1.month > month,2.cust = cust and 2.month < month
+1.cust = cust and 1.month < month,2.cust = cust and 2.month > month
